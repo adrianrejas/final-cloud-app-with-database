@@ -108,11 +108,20 @@ class Question(models.Model):
     mark = models.FloatField()
     is_partially_correct_accepted = models.BooleanField()
 
+    # A method to workout question presentation type
+    @property
+    def get_presentation_type(self):
+        all_correct_answers = self.choice_set.filter(is_correct=True).count()
+        if (self.is_partially_correct_accepted == False) and (all_correct_answers == 1):
+            return 'radio'
+        else:
+            return 'checkbox'
+
     # A  method to calculate if learner get the score of the question, giving the mark corresponding 
     # to que anwered question
     def is_get_score(self, selected_ids):
         all_correct_answers = self.choice_set.filter(is_correct=True).count()
-        if (self.is_partially_correct_accepted == True) or (all_correct_answers == 1):
+        if (self.is_partially_correct_accepted == False) and (all_correct_answers == 1):
             selected_correct = self.choice_set.filter(is_correct=True, id__in=selected_ids).count()
             if all_correct_answers == selected_correct:
                 return mark
