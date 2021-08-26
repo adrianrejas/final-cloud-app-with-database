@@ -9,15 +9,15 @@ class QuestionInLine(admin.StackedInline):
 
 class ChoiceInLine(admin.StackedInline):
     model = Choice
-    extra = 2
+    extra = 1
 
 class LessonInline(admin.StackedInline):
     model = Lesson
-    extra = 5
+    extra = 1
 
 # Register your models here.
 class CourseAdmin(admin.ModelAdmin):
-    inlines = [LessonInline, QuestionInLine]
+    inlines = [LessonInline]
     list_display = ('name', 'pub_date')
     list_filter = ['pub_date']
     search_fields = ['name', 'description']
