@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
 # <HINT> Import any new Models here
-from .models import Course, Enrollment
+from .models import Course, Enrollment, Question, Choice, Submission
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
@@ -60,14 +60,14 @@ def logout_request(request):
     return redirect('onlinecourse:index')
 
 
-def check_if_enrolled(user, course):
+def get_enrollement(user, course):
     is_enrolled = False
     if user.id is not None:
         # Check if user enrolled
-        num_results = Enrollment.objects.filter(user=user, course=course).count()
-        if num_results > 0:
-            is_enrolled = True
-    return is_enrolled
+        results = Enrollment.objects.filter(user=user, course=course)
+        if results.count() > 0:
+            return results.first()
+    return None
 
 
 # CourseListView
@@ -80,7 +80,7 @@ class CourseListView(generic.ListView):
         courses = Course.objects.order_by('-total_enrollment')[:10]
         for course in courses:
             if user.is_authenticated:
-                course.is_enrolled = check_if_enrolled(user, course)
+                course.is_enrolled = (get_enrollement(user, course) != None)
         return courses
 
 
@@ -92,13 +92,24 @@ class CourseDetailView(generic.DetailView):
 def enroll(request, course_id):
     course = get_object_or_404(Course, pk=course_id)
     user = request.user
+    
+    action = request.POST['action']
 
-    is_enrolled = check_if_enrolled(user, course)
-    if not is_enrolled and user.is_authenticated:
-        # Create an enrollment
-        Enrollment.objects.create(user=user, course=course, mode='honor')
-        course.total_enrollment += 1
-        course.save()
+    if action == "Cancel enrollement": 
+        enrollement = get_enrollement(user, course)
+        if (enrollement != None) and user.is_authenticated:
+            # Delete enrollment
+            enrollement.delete()
+            course.total_enrollment -= 1
+            course.save()
+        return HttpResponseRedirect(reverse(viewname='onlinecourse:index'))    
+    elif action == "Enroll": 
+        enrollement = get_enrollement(user, course)
+        if (enrollement == None) and user.is_authenticated:
+            # Create an enrollment
+            Enrollment.objects.create(user=user, course=course, mode='honor')
+            course.total_enrollment += 1
+            course.save()
 
     return HttpResponseRedirect(reverse(viewname='onlinecourse:course_details', args=(course.id,)))
 
