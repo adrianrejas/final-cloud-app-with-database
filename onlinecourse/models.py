@@ -110,32 +110,32 @@ class Question(models.Model):
 
     # A method to workout question presentation type
     @property
-    def get_presentation_type(self):
+    def get_question_type(self):
         all_correct_answers = self.choice_set.filter(is_correct=True).count()
         if (self.is_partially_correct_accepted == False) and (all_correct_answers == 1):
             return 'radio'
         else:
             return 'checkbox'
 
-    # A  method to calculate if learner get the score of the question, giving the mark corresponding 
+    # A  method to calculate the score of the question, giving the mark corresponding 
     # to que anwered question
-    def is_get_score(self, selected_ids):
+    def get_score(self, selected_ids):
         all_correct_answers = self.choice_set.filter(is_correct=True).count()
         if (self.is_partially_correct_accepted == False) and (all_correct_answers == 1):
             selected_correct = self.choice_set.filter(is_correct=True, id__in=selected_ids).count()
             if all_correct_answers == selected_correct:
-                return mark
+                return self.mark
             else:
                 return 0
         else:
             total_answers = 0
             correct_answers = 0
-            for choice in self.choice_set:
+            for choice in self.choice_set.all():
                 total_answers += 1
                 if ((choice.id in selected_ids) and (choice.is_correct)) or \
                         ((choice.id not in selected_ids) and (not choice.is_correct)):  
                     correct_answers += 1
-            return mark*correct_answers/total_answers
+            return self.mark*correct_answers/total_answers
 
 #  Create a Choice Model with:
     # Used to persist choice content for a question
