@@ -62,7 +62,7 @@
                 <div class="form-group p-3">
                     {% for choice in question.choices %}
                         <div class="form-check">
-                            <label class="form-check-label {% if choice.is_resolved_correctly %}text-success{% elif question.result == 'partial' %}text-warning{% else %}text-danger{% endif %} ml-3">
+                            <label class="form-check-label {% if question.get_question_type == 'radio' and question.result != 'success' %}text-danger{% elif choice.is_resolved_correctly %}text-success{% elif question.result == 'partial' %}text-warning{% else %}text-danger{% endif %} ml-3">
                                 <input type="{{ question.get_question_type }}" name="choice_{{choice.id}}"
                                     disabled class="form-check-input" id="{{choice.id}}"
                                     {% if  choice.is_selected %} checked {% endif %}

@@ -51,19 +51,17 @@
                 {% endfor %}
             </div>
 
-            <!--
-
-            A collapse example here:
-            <div id="exam" class="collapse">
-                Click to expand elements within the collapse div
-                </div>
-
-            -->
-
             <!-- If user is authenticated, show course exam with a list of question -->            
             {% if user.is_authenticated %}
             <!-- Show questions and choices. Use Bootstrap Collapse to hide exam first -->
-                <a href="#start_exam" class="btn btn-primary my-2" data-toggle="collapse">Start Exam</a>
+                <a href="#start_exam" style="display: inline-block;" class="btn btn-primary my-2" data-toggle="collapse">Start Exam</a>
+                {% if course.best_grade < 0 %}
+                    <div style="display: inline-block;" class="ml-3">&emsp;Not done before</div>
+                {% elif course.best_grade > 80 %}
+                    <div style="display: inline-block;" class="text-success ml-3">&emsp;Passed with best mark of {{course.best_grade}}%</div>
+                {% else %}
+                    <div style="display: inline-block;" class="text-danger ml-3">&emsp;Failed with best mark of {{course.best_grade}}%</div>
+                {% endif %}
                 <div id="start_exam" class="collapse">
             <!-- Create a form to collect the selected choices for all questions -->
             <!-- Each example can have many questions, each one with many choices -->

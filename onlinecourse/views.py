@@ -5,7 +5,7 @@ from .models import Course, Enrollment, Question, Choice, Submission
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
-from django.views import generic
+from django.views import View, generic
 from django.contrib.auth import login, logout, authenticate
 import logging
 # Get an instance of a logger
@@ -83,10 +83,36 @@ class CourseListView(generic.ListView):
                 course.is_enrolled = (get_enrollement(user, course) != None)
         return courses
 
+# CourseDetailView
+class CourseDetailView(View):
 
-class CourseDetailView(generic.DetailView):
-    model = Course
-    template_name = 'onlinecourse/course_detail_bootstrap.html'
+    def get(self, request, *args, **kwargs):
+        try:
+            context = {}
+            course_id = kwargs.get('pk')
+            user = self.request.user
+            course = Course.objects.get(pk=course_id)
+            enrollment = get_enrollement(user, course)
+            if user.is_authenticated:
+                course.is_enrolled = (enrollment != None)
+            course.best_grade = -1
+            for submission in enrollment.submission_set.all():
+                exam_mark = 0.0
+                highest_mark_possible = 0.0
+                for question in course.question_set.all():
+                    chosen_answers_ids = list(map(lambda x: x.id, submission.choices \
+                            .filter(question__id=question.id).all()))
+                    question.mark_resolved = question.get_score(chosen_answers_ids)
+                    exam_mark += question.mark_resolved
+                    highest_mark_possible += question.mark
+                if (highest_mark_possible > 0) and (exam_mark <= highest_mark_possible):
+                    grade = int(exam_mark / highest_mark_possible * 100)   
+                    if (grade > course.best_grade):
+                        course.best_grade = grade
+            context['course'] = course
+            return render(request, 'onlinecourse/course_detail_bootstrap.html', context)
+        except Course.DoesNotExist:
+            raise Http404("No course matches the given id.")
 
 def enroll(request, course_id):
     course = get_object_or_404(Course, pk=course_id)
@@ -169,13 +195,12 @@ def show_exam_result(request, course_id, submission_id):
     for question in questions:
         chosen_answers_ids = list(map(lambda x: x.id, submission.choices \
         		.filter(question__id=question.id).all()))
-        print(chosen_answers_ids)
         question.mark_resolved = question.get_score(chosen_answers_ids)
         exam_mark += question.mark_resolved
         highest_mark_possible += question.mark
-        if exam_mark == question.mark:
+        if question.mark_resolved == question.mark:
             question.result = "success"
-        elif exam_mark == 0:
+        elif question.mark_resolved == 0:
             question.result = "failed"
         else:
             question.result = "partial"
@@ -192,11 +217,11 @@ def show_exam_result(request, course_id, submission_id):
                 if choice.is_correct:
                     choice.is_resolved_correctly = False
                 else:
-                    choice.is_resolved_correctly = True
-    course.grade = int(exam_mark / highest_mark_possible * 100)    
+                    choice.is_resolved_correctly = True 
     if (highest_mark_possible <= 0) or (exam_mark > highest_mark_possible):
         return HttpResponseNotFound("Rerror resolving exam")
     else:
+        course.grade = int(exam_mark / highest_mark_possible * 100)   
         context = {}
         context['course'] = course
         context['questions'] = questions
